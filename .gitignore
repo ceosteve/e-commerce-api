@@ -1,0 +1,10 @@
+__pycache__
+*.pyo
+*.pyd
+
+# virual environment
+venv/
+.env
+.venv/
+
+
