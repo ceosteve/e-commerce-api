@@ -1,5 +1,4 @@
 
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from ..database import get_db
 from sqlalchemy.orm import Session
@@ -35,5 +34,8 @@ def get_profile (id:int, db:Session=Depends(get_db), current_user:int=Depends(oa
     if not user:
         raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail=f"user with id {id} not found")
     
+    if user.id != current_user.id:
+        raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED, detail=f"Invalid credentials")
+
     return user
 
