@@ -1,6 +1,7 @@
 
 from .database import Base
-from sqlalchemy import Column, Integer, String, TIMESTAMP
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, TIMESTAMP
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql.expression import text
 
 
@@ -18,4 +19,15 @@ class Users(Base):
     @property 
     def full_name(self):
         return f"{self.fist_name} {self.last_name}"
+    
+    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete")
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+    id = Column(Integer, primary_key=True, index = True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    hashed_token = Column(String, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+
+    user = relationship("Users", back_populates= "refresh_tokens")
     
