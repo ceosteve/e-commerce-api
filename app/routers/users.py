@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from ..database import get_db
 from sqlalchemy.orm import Session
-from app import schemas, models, utils
+from app import schemas, models, utils, oauth2
 
 
 
@@ -28,7 +28,7 @@ def create_user_account(user:schemas.UserCreate, db:Session=Depends(get_db)):
 
 
 @router.get("/users/{id}", response_model=schemas.UserResponse)
-def get_profile (id:int, db:Session=Depends(get_db)):
+def get_profile (id:int, db:Session=Depends(get_db), current_user:int=Depends(oauth2.get_current_user)):
 
     user=db.query(models.Users).filter(models.Users.id==id).first()
 
