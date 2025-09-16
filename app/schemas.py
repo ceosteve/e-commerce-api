@@ -1,5 +1,6 @@
 
 from pydantic import BaseModel, EmailStr
+from typing import Optional
 
 
 
@@ -26,3 +27,14 @@ class UserResponse(BaseModel):
 
     class Config:
         fromt_attributes = True
+
+class TokenData(BaseModel):
+    id: Optional[int] = None
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str
+    refresh_token : str
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
