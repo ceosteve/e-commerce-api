@@ -11,6 +11,12 @@ from sqlalchemy.sql.expression import text
 class GenderEnum(str,enum.Enum):
     M = "M"
     F = "F"
+
+class UserRole(str, enum.Enum):
+    admin = "admin"
+    customer="customer"
+
+    
 # users sqlalchemy model
 class Users(Base):
     __tablename__ = 'users'
@@ -21,6 +27,7 @@ class Users(Base):
     gender = Column(Enum(GenderEnum), nullable=False)
     birth_date= Column(Date,nullable=False)
     password = Column(String, nullable=False)
+    role = Column(Enum(UserRole), server_default=UserRole.customer, nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
     
 
