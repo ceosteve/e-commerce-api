@@ -3,9 +3,10 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, status, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from app.config import Settings
+from ..authentication import oauth2
 from app.database import get_db
-from app import models, schemas, utils, oauth2
+from app import models, schemas, utils
+from ..authentication.refresh_tokens import make_refresh_record
 
 router = APIRouter(
     tags= ['login']
@@ -20,13 +21,13 @@ def login(user_credentials:OAuth2PasswordRequestForm= Depends(), db:Session=Depe
     user = query.first()
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="username not found")
     
     if not utils.verify_password(user_credentials.password, user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    access_token = oauth2.create_access_token({"user_id":user.id})
-    refresh_raw = utils.make_refresh_record(db,user_id=user.id)
+    access_token = oauth2.create_access_token({"user_id":user.id,"role":user.role})
+    refresh_raw = make_refresh_record(db,user_id=user.id)
 
     return {"access_token":access_token, "token_type":"bearer", "refresh_token":refresh_raw}
 
