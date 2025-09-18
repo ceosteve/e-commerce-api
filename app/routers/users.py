@@ -1,8 +1,10 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
+
+from ..authentication import oauth2 
 from ..database import get_db
 from sqlalchemy.orm import Session
-from app import schemas, models, utils, oauth2
+from app import dependencies, schemas, models, utils,dependencies
 
 
 
@@ -28,7 +30,7 @@ def create_user_account(user:schemas.UserCreate, db:Session=Depends(get_db)):
 
 # retrieve profile details
 @router.get("/{id}", response_model=schemas.UserResponse)
-def get_profile (id:int, db:Session=Depends(get_db), current_user:int=Depends(oauth2.get_current_user)):
+def get_profile (id:int, db:Session=Depends(get_db), current_user:int=Depends(dependencies.get_current_user)):
 
     user=db.query(models.Users).filter(models.Users.id==id).first()
 
@@ -45,7 +47,7 @@ def get_profile (id:int, db:Session=Depends(get_db), current_user:int=Depends(oa
 @router.put("/edit/{id}", status_code=status.HTTP_200_OK, response_model=schemas.UserOut)
 def update_profile(id:int, data:schemas.UserUpdate,
                    db:Session=Depends(get_db), 
-                   current_user:int=Depends(oauth2.get_current_user)):
+                   current_user:int=Depends(dependencies.get_current_user)):
     
     query=db.query(models.Users).filter(models.Users.id==id)
     user=query.first()
@@ -71,7 +73,7 @@ def update_profile(id:int, data:schemas.UserUpdate,
 # delete user as admin
 @router.delete("/delete/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(id:int, db:Session=Depends(get_db), 
-                current_user:models.Users=Depends(oauth2.get_current_user)):
+                current_user:models.Users=Depends(dependencies.get_current_user)):
     
     user=db.query(models.Users).filter(models.Users.id==id).first()
 
