@@ -1,5 +1,6 @@
 
 from datetime import date
+from turtle import st
 from pydantic import BaseModel, EmailStr, constr
 from typing import Optional
 
@@ -39,7 +40,7 @@ class UserResponse(BaseModel):
     email : str
 
     class Config:
-        fromt_attributes = True
+        from_attributes = True
 
 class TokenData(BaseModel):
     id: Optional[int] = None
@@ -51,3 +52,25 @@ class TokenOut(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
+class ProductCreate(BaseModel):
+    name: str
+    description: str
+    brand: str
+    price: int
+    stock: int
+
+class ProductOut(ProductCreate):
+    pass
+
+    class Config:
+        from_attributes = True
+
+class ProductUpdate(ProductCreate):
+    pass
+
+    class Config:
+        from_atrributes=True
+
+
+
