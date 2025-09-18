@@ -39,3 +39,30 @@ def get_profile (id:int, db:Session=Depends(get_db), current_user:int=Depends(oa
 
     return user
 
+
+@router.put("/users/edit/{id}", status_code=status.HTTP_200_OK, response_model=schemas.UserOut)
+def update_profile(id:int, data:schemas.UserCreate,
+                   db:Session=Depends(get_db), 
+                   current_user:int=Depends(oauth2.get_current_user)):
+    
+    query=db.query(models.Users).filter(models.Users.id==id)
+    user=query.first()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"user with id{id} not found")
+    
+    if current_user.id!= user.id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="unauthorized")
+    
+    update_data= data.dict()
+
+    if "password" in update_data and update_data['password']:
+        update_data['password']=utils.hash_password(update_data['password'])
+
+    query.update(update_data, synchronize_session=False)
+    db.commit()
+
+    return query.first()
+
+    
+
