@@ -1,17 +1,19 @@
 from fastapi import Depends
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+from .config import settings
 
 
 
-Base = declarative_base()
+DATABASE_URL = f"postgresql+psycopg2://{settings.database_username}:{settings.database_password}@{settings.database_host}:{
+    settings.database_port}/{settings.database_name}"
 
-DATABASE_URL = "postgresql+psycopg2://postgres:postgres254@localhost:5432/ecommerce"
 engine = create_engine(DATABASE_URL)
+
 SessionLocal = sessionmaker(autoflush=False, autocommit=False, bind=engine)
 
 
-
+Base = declarative_base()
 
 def get_db():
     db= SessionLocal()
