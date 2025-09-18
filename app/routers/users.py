@@ -7,11 +7,12 @@ from app import schemas, models, utils, oauth2
 
 
 router = APIRouter(
+    prefix="/users",
     tags= ['users']
 )
 
 # create new user account
-@router.post("/users/register", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
+@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
 def create_user_account(user:schemas.UserCreate, db:Session=Depends(get_db)):
 
     hashed_password = utils.hash_password(user.password)
@@ -25,8 +26,8 @@ def create_user_account(user:schemas.UserCreate, db:Session=Depends(get_db)):
     return new_user
 
 
-
-@router.get("/users/{id}", response_model=schemas.UserResponse)
+# retrieve profile details
+@router.get("/{id}", response_model=schemas.UserResponse)
 def get_profile (id:int, db:Session=Depends(get_db), current_user:int=Depends(oauth2.get_current_user)):
 
     user=db.query(models.Users).filter(models.Users.id==id).first()
@@ -40,8 +41,9 @@ def get_profile (id:int, db:Session=Depends(get_db), current_user:int=Depends(oa
     return user
 
 
-@router.put("/users/edit/{id}", status_code=status.HTTP_200_OK, response_model=schemas.UserOut)
-def update_profile(id:int, data:schemas.UserCreate,
+# edit user profile
+@router.put("/edit/{id}", status_code=status.HTTP_200_OK, response_model=schemas.UserOut)
+def update_profile(id:int, data:schemas.UserUpdate,
                    db:Session=Depends(get_db), 
                    current_user:int=Depends(oauth2.get_current_user)):
     
@@ -63,6 +65,31 @@ def update_profile(id:int, data:schemas.UserCreate,
     db.commit()
 
     return query.first()
+
+
+
+# delete user as admin
+@router.delete("/delete/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(id:int, db:Session=Depends(get_db), 
+                current_user:models.Users=Depends(oauth2.get_current_user)):
+    
+    user=db.query(models.Users).filter(models.Users.id==id).first()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user with id{id} not found")
+    
+    if current_user.role == models.UserRole.admin:
+        db.delete(user)
+        db.commit()
+
+    if current_user.role == models.UserRole.customer and current_user.id==id:
+        db.delete(user)
+        db.commit()
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="you cannot delete this account")
+
+    return {"message":"user deleted from database"}
+
 
     
 
