@@ -3,7 +3,7 @@ from datetime import date
 from pydantic import BaseModel, EmailStr, constr
 from typing import Optional
 
-from app.models import GenderEnum
+from app.models import GenderEnum, UserRole
 
 
 
@@ -14,8 +14,15 @@ class UserCreate(BaseModel):
     email: EmailStr
     gender: GenderEnum
     birth_date: date
+    role: UserRole
     password: str
-    
+
+class UserUpdate(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    gender: GenderEnum
+    birth_date: date
 
 
 # user response upon creating account
