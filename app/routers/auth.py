@@ -26,7 +26,7 @@ def login(user_credentials:OAuth2PasswordRequestForm= Depends(), db:Session=Depe
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     access_token = oauth2.create_access_token({"user_id":user.id})
-    refresh_raw = utils.make_refresh_record(db,user_id=user.id, days=Settings.refresh_token_expiration_days)
+    refresh_raw = utils.make_refresh_record(db,user_id=user.id)
 
     return {"access_token":access_token, "token_type":"bearer", "refresh_token":refresh_raw}
 
@@ -36,13 +36,16 @@ def login(user_credentials:OAuth2PasswordRequestForm= Depends(), db:Session=Depe
 def refresh_token(request:schemas.RefreshRequest, db:Session=Depends(get_db)):
 
     raw_refresh_token=request.refresh_token
-    hashed_token = utils.hash_token(raw_refresh_token)
 
-    db_token = db.query(models.RefreshToken).filter(models.RefreshToken.hashed_token==hashed_token
-                                                    ).filter(models.RefreshToken.expires_at > datetime.utcnow()).first()
+    db_tokens = db.query(models.RefreshToken).filter(models.RefreshToken.expires_at > datetime.utcnow()).all()
+    db_token = None
     
-    if not db_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid access token")
+    for token in db_tokens:
+        if utils.verify_token(raw_refresh_token,token.hashed_token):
+            db_token = token
+            break
+        if not db_tokens:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
     
     #rotate refresh token
     user_id = db_token.user_id
@@ -53,6 +56,6 @@ def refresh_token(request:schemas.RefreshRequest, db:Session=Depends(get_db)):
 
     new_access_token = oauth2.create_access_token({"user_id": user_id})
 
-    return {"acess_token":new_access_token, "token_type":"bearer", "refresh_token":new_raw_refresh_token}
+    return {"access_token":new_access_token, "token_type":"bearer", "refresh_token":new_raw_refresh_token}
 
 
