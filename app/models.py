@@ -1,7 +1,7 @@
 
 import enum
 from .database import Base
-from sqlalchemy import Column, Date, DateTime, Enum, ForeignKey, Integer, String, TIMESTAMP
+from sqlalchemy import DATETIME, Column, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, TIMESTAMP
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.expression import text
 
@@ -16,7 +16,7 @@ class UserRole(str, enum.Enum):
     admin = "admin"
     customer="customer"
 
-    
+
 # users sqlalchemy model
 class Users(Base):
     __tablename__ = 'users'
@@ -42,4 +42,18 @@ class RefreshToken(Base):
     expires_at = Column(DateTime, nullable=False)
 
     user = relationship("Users", back_populates= "refresh_tokens")
+
+class Products(Base):
+    __tablename__="products"
+    id=Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    description =Column(String, nullable=False)
+    brand = Column(String, nullable=False)
+    price = Column(Numeric(8,2), nullable=False)
+    stock = Column(Integer, nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=text('now()'), nullable=False)
+
+
+
+
     
