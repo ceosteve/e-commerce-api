@@ -1,6 +1,9 @@
 
-from pydantic import BaseModel, EmailStr
+from datetime import date
+from pydantic import BaseModel, EmailStr, constr
 from typing import Optional
+
+from app.models import GenderEnum
 
 
 
@@ -9,7 +12,10 @@ class UserCreate(BaseModel):
     first_name: str
     last_name: str
     email: EmailStr
+    gender: GenderEnum
+    birth_date: date
     password: str
+    
 
 
 # user response upon creating account
