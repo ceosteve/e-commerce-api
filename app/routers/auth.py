@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, status, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from app.config import Settings
 from app.database import get_db
 from app import models, schemas, utils, oauth2
 
@@ -25,7 +26,7 @@ def login(user_credentials:OAuth2PasswordRequestForm= Depends(), db:Session=Depe
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     access_token = oauth2.create_access_token({"user_id":user.id})
-    refresh_raw = utils.make_refresh_record(db, user_id=user.id)
+    refresh_raw = utils.make_refresh_record(db,user_id=user.id, days=Settings.refresh_token_expiration_days)
 
     return {"access_token":access_token, "token_type":"bearer", "refresh_token":refresh_raw}
 
