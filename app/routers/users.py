@@ -5,6 +5,7 @@ from ..authentication import oauth2
 from ..database import get_db
 from sqlalchemy.orm import Session
 from app import dependencies, schemas, models, utils,dependencies
+from ..utils import raise_api_error
 
 
 
@@ -35,10 +36,10 @@ def get_profile (id:int, db:Session=Depends(get_db), current_user:int=Depends(de
     user=db.query(models.Users).filter(models.Users.id==id).first()
 
     if not user:
-        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail=f"user with id {id} not found")
+        raise raise_api_error("USER_NOT_FOUND",id=id)
     
     if user.id != current_user.id:
-        raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED, detail=f"Invalid credentials")
+        raise raise_api_error("INVALID_CREDENTIALS")
 
     return user
 
@@ -53,10 +54,10 @@ def update_profile(id:int, data:schemas.UserUpdate,
     user=query.first()
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"user with id{id} not found")
+        raise raise_api_error("USER_NOT_FOUND",id=id)
     
     if current_user.id!= user.id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="unauthorized")
+        raise raise_api_error("INVALID_CREDENTIALS")
     
     update_data= data.dict()
 
@@ -78,7 +79,7 @@ def delete_user(id:int, db:Session=Depends(get_db),
     user=db.query(models.Users).filter(models.Users.id==id).first()
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user with id{id} not found")
+        raise raise_api_error("USER_NOT_FOUND", id=id)
     
     if current_user.role == models.UserRole.admin:
         db.delete(user)
@@ -88,7 +89,7 @@ def delete_user(id:int, db:Session=Depends(get_db),
         db.delete(user)
         db.commit()
     else:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="you cannot delete this account")
+        raise raise_api_error("FORBIDDEN")
 
     return {"message":"user deleted from database"}
 

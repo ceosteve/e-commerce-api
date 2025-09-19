@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app import schemas, models, dependencies
 from app.database import get_db
+from app.utils import raise_api_error
 
 
 router = APIRouter(
@@ -56,7 +57,7 @@ def update_product(id:int, update_info:schemas.ProductUpdate,
     product=query.first()
 
     if not product:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail= f"product with {id} not found")
+        raise raise_api_error("PRODUCT_NOT_FOUND", id=id)
  
     updated_product=update_info.dict(exclude_unset=True)
 
@@ -76,7 +77,7 @@ def delete_product(id:int, db:Session=Depends(get_db),
     product=db.query(models.Products).filter(models.Products.id==id).first()
 
     if not product:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail= f"product with {id} not found")
+        raise raise_api_error("PRODUCT_NOT_FOUND", id=id)
     
     db.delete(product)
     db.commit()
