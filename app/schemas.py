@@ -1,8 +1,9 @@
 
-from datetime import date
-from turtle import st
-from pydantic import BaseModel, EmailStr, constr
-from typing import Optional
+from datetime import date, datetime
+from decimal import Decimal
+from pydantic import BaseModel, EmailStr, Field
+from typing import List, Optional
+
 
 from app.models import GenderEnum, UserRole
 
@@ -72,5 +73,29 @@ class ProductUpdate(ProductCreate):
     class Config:
         from_atrributes=True
 
+class CreateOrderItem(BaseModel):
+    product_id: int
+    item_quantity: int
+
+class CreateOrder(BaseModel):
+    items:List[CreateOrderItem]
+
+class OrderItemOut(CreateOrderItem):
+    unit_price: Decimal
+
+    class Config:
+        from_attributes=True
+
+class OrderOut(BaseModel):
+    id: int
+    user_id : int
+    status: str
+    placed_on: datetime
+    total_price: Decimal
+    items: List[OrderItemOut]
+
+    class Config:
+        from_attributes: True
+    
 
 
