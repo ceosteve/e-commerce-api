@@ -117,7 +117,7 @@ def checkout (db:Session=Depends(get_db),
 
             db.add(new_order_item)
 
-    total_price += product_exists.price * item.quantity
+            total_price += product_exists.price * item.quantity
 
     active_cart.status = "checked_out"
     active_cart.updated_at = datetime.utcnow()
@@ -162,7 +162,7 @@ def update_order_item(id:int, update_data:schemas.OrderItemUpdate, db:Session=De
              raise raise_api_error("INSUFFICIENT STOCK")
          
         
-         product.stock -= (item.item_quantity- item.item_quantity)
+         product.stock -= (item.item_quantity- cart_item.quantity)
          cart_item.quantity = item.item_quantity
          cart_item.unit_price = product.price
 
@@ -179,6 +179,9 @@ def update_order_item(id:int, update_data:schemas.OrderItemUpdate, db:Session=De
 def delete_card(id:int, db:Session=Depends(get_db),current_user:int=Depends(dependencies.get_current_user)):
      
     cart=db.query(models.Cart).filter(models.Cart.id==id).first()
+
+    if not cart:
+         raise raise_api_error("CART_NOT_FOUND", id=id)
 
     if cart.status == models.CartStatus.checked_out:
          raise raise_api_error("ALREADY_CHECKED_OUT")
