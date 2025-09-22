@@ -1,8 +1,10 @@
 
 import enum
 
+from colorama import Fore
+
 from .database import Base
-from sqlalchemy import DATETIME, Column, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, TIMESTAMP, func
+from sqlalchemy import DATETIME, Boolean, Column, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, TIMESTAMP, func
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.expression import text
 
@@ -22,6 +24,14 @@ class OrderStatus(str,enum.Enum):
     paid="paid"
     shipped ="shipped"
     cancelled= "cancelled"
+    delivered = "delivered"
+
+
+class CartStatus(str, enum.Enum):
+    active = "active"
+    checked_out = "checked_out"
+    abandoned = "abandoned"
+
 
 # users sqlalchemy model
 class Users(Base):
@@ -76,6 +86,7 @@ class Order(Base):
     user = relationship("Users", back_populates="orders")
     items = relationship("OrderItem",back_populates="order")
 
+
     def recalc_total(self):
         self.total_price = sum(item.item_quantity * item.unit_price for item in self.items)
         
@@ -91,3 +102,29 @@ class OrderItem(Base):
 
     order = relationship("Order",back_populates="items")
     product= relationship("Products", back_populates="order_items")
+
+
+class Cart(Base):
+    __tablename__ = "cart"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at  = Column(TIMESTAMP(timezone=True), server_default=text('now()'), nullable=False)
+    status = Column(Enum(CartStatus), default=CartStatus.active, nullable=False)
+
+
+    items = relationship("CartItem", back_populates="cart",cascade="all, delete-orphan")
+
+
+class CartItem(Base):
+    __tablename__ = "cart_items"
+    id = Column(Integer, primary_key=True, index=True)
+    cart_id = Column(Integer, ForeignKey("cart.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    quantity= Column(Integer, nullable=False)
+    unit_price = Column(Numeric(10,2), nullable=False)
+
+    cart = relationship("Cart", back_populates="items")
+    product = relationship("Products")
+   
+

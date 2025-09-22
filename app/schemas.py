@@ -1,10 +1,12 @@
 
 from datetime import date, datetime
 from decimal import Decimal
+
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional
 
 
+from app import models
 from app.models import GenderEnum, UserRole
 
 
@@ -96,6 +98,32 @@ class OrderOut(BaseModel):
 
     class Config:
         from_attributes: True
+
+class OrderItemUpdate(BaseModel):
+    items: List[CreateOrderItem]
+
+
+class OrderStatusUpdate(BaseModel):
+    status: models.OrderStatus
+
+
+class CreateCartItem(BaseModel):
+    product_id: int
+    quantity: int
+
+class CreateCart(BaseModel):
+    items: List[CreateCartItem]
+
+class CartOut(BaseModel):
+    id: int
+    user_id: int
+    created_at : datetime
+    updated_at : datetime
+    status: str
     
+
+
+
+
 
 
