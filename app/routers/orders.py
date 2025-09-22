@@ -69,7 +69,7 @@ def create_order(order:schemas.CreateOrder,
         db.refresh(new_order)
 
         return{
-            "order_id": new_order.id,
+            "id": new_order.id,
             "user_id": new_order.user_id,
             "status": new_order.status,
             "placed_on": new_order.placed_on,
@@ -83,8 +83,8 @@ def create_order(order:schemas.CreateOrder,
 
 
 
-# view orders
-@router.get("/",status_code=status.HTTP_200_OK, response_model=List[schemas.OrderOut])
+# view orders by logged in customer
+@router.get("/customer",status_code=status.HTTP_200_OK, response_model=List[schemas.OrderOut])
 def get_orders(db:Session=Depends(get_db), current_user:int=Depends(dependencies.get_current_user)):
 
     orders=db.query(models.Order).filter(models.Order.user_id==current_user.id).all()
@@ -93,6 +93,17 @@ def get_orders(db:Session=Depends(get_db), current_user:int=Depends(dependencies
         raise raise_api_error("ORDER_NOT_FOUND")
     
     return orders
+
+
+
+# view orders by admin
+@router.get("/admin", status_code=status.HTTP_200_OK,response_model=List[schemas.OrderOut])
+def get_all_orders_in_system(db:Session=Depends(get_db), 
+                             current_user:models.UserRole=Depends(dependencies.require_admin)):
+    orders = db.query(models.Order).all()
+
+    return orders
+
 
 
 # update order items
@@ -138,7 +149,7 @@ def update_order_item(id:int, update_data:schemas.OrderItemUpdate, db:Session=De
     return order
 
 
-#  update order status
+#  update order status by admin
 @router.put("/update/{id}/status", status_code=status.HTTP_200_OK, response_model=schemas.OrderOut)
 def update_order_status(id:int, update_data:schemas.OrderStatusUpdate, 
                         db:Session=Depends(get_db),
@@ -151,7 +162,10 @@ def update_order_status(id:int, update_data:schemas.OrderStatusUpdate,
     if not order:
         raise raise_api_error("ORDER_ID_NOT_FOUND", id=id)
     
-    
+    if current_user == models.UserRole.customer:
+        if order.status != models.OrderStatus.pending:
+            raise raise_api_error("YOU_CANNOT_CANCEL_TH")
+        
     order.status = update_data.status
 
 
@@ -159,6 +173,7 @@ def update_order_status(id:int, update_data:schemas.OrderStatusUpdate,
     db.refresh(order)
 
     return order
+
 
 
 
