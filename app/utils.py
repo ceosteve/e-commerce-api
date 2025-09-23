@@ -27,7 +27,6 @@ def verify_token(token:str, hashed_token:str) -> bool:
     return pswd_context.verify(token, hashed_token)
 
 
-
 # create consistent format of exceptions
 def raise_api_error(error_code:str, **kwargs):
     error=ERRORS.get(error_code)

@@ -88,6 +88,7 @@ class OrderItemOut(CreateOrderItem):
     class Config:
         from_attributes=True
 
+
 class OrderOut(BaseModel):
     id: int
     user_id : int
@@ -111,6 +112,7 @@ class CreateCartItem(BaseModel):
     product_id: int
     quantity: int
 
+
 class CreateCart(BaseModel):
     items: List[CreateCartItem]
 
@@ -120,7 +122,7 @@ class CartOut(BaseModel):
     created_at : datetime
     updated_at : datetime
     status: str
-    
+
 
 
 
