@@ -1,13 +1,16 @@
 
 from fastapi import APIRouter, Response, status, Depends
 from datetime import datetime
-
+import logging 
 
 from ..utils import raise_api_error
 from app import dependencies
 from app.database import get_db
 from .. import models, schemas
 from sqlalchemy.orm import Session
+
+
+logger = logging.getLogger("ecommerce")
 
 
 router = APIRouter(
@@ -67,6 +70,8 @@ def add_to_cart(order_items:schemas.CreateCart,
     db.commit()
     db.refresh(active_cart)
     
+    logger.info(f"user {current_user.id} created new cart with {active_cart.id}")
+    
     return active_cart
 
 
@@ -125,7 +130,9 @@ def checkout (db:Session=Depends(get_db),
             
     db.commit()
     db.refresh(new_order)
-
+    
+    logger.info(f"user {current_user.id} checked out {active_cart.ids}")
+    
     return new_order
            
 
@@ -146,6 +153,7 @@ def update_order_item(id:int, update_data:schemas.OrderItemUpdate, db:Session=De
     if cart.status == models.CartStatus.checked_out:
         raise raise_api_error("ALREADY_CHECKED_OUT")
 
+    logger.warning(f"user with {current_user.id} treid changing a checked out cart with id {cart.ids}")
 
     for item in update_data.items:
          product = db.query(models.Products).filter(models.Products.id==item.product_id).first()
@@ -169,14 +177,15 @@ def update_order_item(id:int, update_data:schemas.OrderItemUpdate, db:Session=De
 
     db.commit()
     db.refresh(cart)
-
+    
+    logger.info(f"user {current_user.id} updated cart {cart.id}")
     return cart
 
 
 
 # delete entire cart 
 @router.delete("/delete/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_card(id:int, db:Session=Depends(get_db),current_user:int=Depends(dependencies.get_current_user)):
+def delete_cart(id:int, db:Session=Depends(get_db),current_user:int=Depends(dependencies.get_current_user)):
      
     cart=db.query(models.Cart).filter(models.Cart.id==id).first()
 
@@ -188,6 +197,9 @@ def delete_card(id:int, db:Session=Depends(get_db),current_user:int=Depends(depe
     
     db.delete(cart)
     db.commit()
+    
+    
+    logger.info(f"user {current_user.id} deleted cart {cart.id}")
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -207,5 +219,8 @@ def delete_product_from_cart(cart_id:int, item_id:int, db:Session=Depends(get_db
     
     db.delete(cart_item)
     db.commit()
+    
+    
+    logger.info(f"user {current_user.id} deleted cart item {cart_item.id}")
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)

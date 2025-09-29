@@ -1,4 +1,5 @@
-
+import logging
+from venv import logger
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from ..authentication import oauth2 
@@ -7,6 +8,8 @@ from sqlalchemy.orm import Session
 from app import dependencies, schemas, models, utils,dependencies
 from ..utils import raise_api_error
 
+
+logger = logging.getLogger("ecommerce")
 
 
 router = APIRouter(
@@ -21,10 +24,13 @@ def create_user_account(user:schemas.UserCreate, db:Session=Depends(get_db)):
     hashed_password = utils.hash_password(user.password)
     user.password = hashed_password
 
-    new_user = models.Users(**user.dict())
+    new_user = models.Users(**user.model_dump())
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    logger.info(f"user with email {new_user.email} created account")
+
 
     return new_user
 
@@ -67,6 +73,8 @@ def update_profile(id:int, data:schemas.UserUpdate,
     query.update(update_data, synchronize_session=False)
     db.commit()
 
+    logger.info(f"user {user.id} updated their data")
+
     return query.first()
 
 
@@ -81,6 +89,8 @@ def delete_user(id:int, db:Session=Depends(get_db),
     if not user:
         raise raise_api_error("USER_NOT_FOUND", id=id)
     
+    logger.warning(f"user {user.id} not found in database")
+    
     if current_user.role == models.UserRole.admin:
         db.delete(user)
         db.commit()
@@ -90,6 +100,8 @@ def delete_user(id:int, db:Session=Depends(get_db),
         db.commit()
     else:
         raise raise_api_error("FORBIDDEN")
+
+    logger.info(f"user {user.id} deleted from database")
 
     return {"message":"user deleted from database"}
 

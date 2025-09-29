@@ -1,13 +1,15 @@
-
+import logging
 from itertools import product
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app import schemas, models, dependencies
 from app.database import get_db
 from app.utils import raise_api_error
 
+
+logger = logging.getLogger("ecommerce")
 
 router = APIRouter(
     prefix="/products",
@@ -16,7 +18,7 @@ router = APIRouter(
 
 
 # create product in the system
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=List[schemas.ProductOut])
+@router.post("/create", status_code=status.HTTP_201_CREATED, response_model=List[schemas.ProductOut])
 def create_product(products:List[schemas.ProductCreate], db:Session=Depends(get_db), 
                    current_user:models.Users=Depends(dependencies.require_admin)):
     
@@ -27,6 +29,8 @@ def create_product(products:List[schemas.ProductCreate], db:Session=Depends(get_
     for product in new_products:
         db.refresh(product)
 
+    logger.info(f"user with {current_user.id} added {new_products} in database")
+    
     return new_products
 
 
@@ -48,7 +52,7 @@ def get_products(db:Session=Depends(get_db),
 
 
 # update product information
-@router.put("/{id}",status_code=status.HTTP_200_OK, response_model=schemas.ProductOut)
+@router.put("/update/{id}",status_code=status.HTTP_200_OK, response_model=schemas.ProductOut)
 def update_product(id:int, update_info:schemas.ProductUpdate, 
                    db:Session=Depends(get_db), 
                    current_user:models.Users=Depends(dependencies.require_admin)):
@@ -58,6 +62,8 @@ def update_product(id:int, update_info:schemas.ProductUpdate,
 
     if not product:
         raise raise_api_error("PRODUCT_NOT_FOUND", id=id)
+    
+    logger.critical(f"user tried to update a non existing product of id {product.id}")
  
     updated_product=update_info.dict(exclude_unset=True)
 
@@ -65,12 +71,14 @@ def update_product(id:int, update_info:schemas.ProductUpdate,
     db.commit()
     db.refresh(product)
 
+    logger.info(f"user {current_user.id} updated product {product.id}")
+
     return product
 
 
 
 # delete product from database
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/delete/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_product(id:int, db:Session=Depends(get_db),
                     current_user:models.Users=Depends(dependencies.require_admin)):
 
@@ -82,7 +90,9 @@ def delete_product(id:int, db:Session=Depends(get_db),
     db.delete(product)
     db.commit()
 
-    return
+    logger.info(f"product {product.id} deleted from database")
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 
