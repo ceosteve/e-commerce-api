@@ -8,6 +8,7 @@ def test_create_product(authorized_client2):
         "brand":"casio",
         "price":1500,
         "stock":10}]
+    
     result = authorized_client2.post("/products/create", json=product_info)
 
     data = result.json()[0]
