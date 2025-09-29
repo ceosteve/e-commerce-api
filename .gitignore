@@ -7,4 +7,10 @@ venv/
 .env
 .venv/
 
+# log files
 
+*.log
+logs/
+
+# text files
+*.txt
