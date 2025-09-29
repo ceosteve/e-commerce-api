@@ -68,15 +68,7 @@ def create_order(order:schemas.CreateOrder,
         db.commit()
         db.refresh(new_order)
 
-        return{
-            "id": new_order.id,
-            "user_id": new_order.user_id,
-            "status": new_order.status,
-            "placed_on": new_order.placed_on,
-            "total_price": new_order.total_price,
-            "items": order_items
-        }
-
+        return new_order
     except Exception as e:
         db.rollback()
         raise e
@@ -120,7 +112,7 @@ def update_order_status(id:int, update_data:schemas.OrderStatusUpdate,
     
     if current_user == models.UserRole.customer:
         if order.status != models.OrderStatus.pending:
-            raise raise_api_error("YOU_CANNOT_CANCEL_THIS_ORDER")
+            raise raise_api_error("YOU_CANNOT_UPDATE_THIS_ORDER")
         
     order.status = update_data.status
 
