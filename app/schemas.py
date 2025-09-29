@@ -103,7 +103,7 @@ class OrderOut(BaseModel):
     status: str
     placed_on: datetime
     total_price: Decimal
-    items: List[OrderItemOut]
+    items: List[OrderItemOut] = []
 
     class Config:
         from_attributes: True
