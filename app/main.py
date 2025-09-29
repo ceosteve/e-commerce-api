@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from starlette.middleware.authentication import AuthenticationMiddleware
 import fastapi
 from fastapi import APIRouter, FastAPI, Depends, Request
@@ -18,19 +19,16 @@ logger = setup_logging()
 models.Base.metadata.create_all(bind=engine)
 
 
-app = FastAPI()
-
-app.add_middleware(LoggingMiddleware)
-
-
-@app.on_event("startup")
-def startup_event():
+@asynccontextmanager
+async def lifespan(app:FastAPI):
     logger.info("Application starting up")
-
-@app.on_event("shutdown")
-def shutdown_event():
+    yield
+    
     logger.info("Application shutting down")
 
+app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(LoggingMiddleware)
 
 
 app.include_router(users.router)

@@ -33,6 +33,10 @@ class UserUpdate(BaseModel):
 class UserOut(BaseModel):
     email: str
     id : int
+    role : str
+
+    class Config:
+        from_attributes = True
 
 
 # response model for getting one's profile
@@ -64,14 +68,18 @@ class ProductCreate(BaseModel):
     stock: int
 
 class ProductOut(ProductCreate):
-    pass
+    id:int
 
     class Config:
         from_attributes = True
 
-class ProductUpdate(ProductCreate):
-    pass
-
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    brand: Optional[str] = None
+    price: Optional[int] = None
+    stock: Optional[int] = None
+    
     class Config:
         from_atrributes=True
 
