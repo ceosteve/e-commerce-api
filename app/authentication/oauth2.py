@@ -1,5 +1,6 @@
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from time import timezone
 from fastapi import Depends, HTTPException, status
 from jose import jwt, JWTError
 from app import models, schemas
@@ -17,15 +18,16 @@ SECRET_KEY = settings.secret_key
 ALGORITHM = settings.algorithm
 EXPIRATION_TIME = settings.access_token_expiration_time
 
-def create_access_token(data:dict):
+def create_access_token(data: dict):
     to_encode = data.copy()
 
     expire = datetime.utcnow() + timedelta(minutes=EXPIRATION_TIME)
-    to_encode.update({"exp":expire})
+    to_encode.update({"exp": expire})
 
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY,algorithm=ALGORITHM)
-
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+   
     return encoded_jwt
+
 
 
 def verify_access_token(token: str, credentials_exception):
