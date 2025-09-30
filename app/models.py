@@ -121,7 +121,7 @@ class CartItem(Base):
     id = Column(Integer, primary_key=True, index=True)
     cart_id = Column(Integer, ForeignKey("cart.id"), nullable=False)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
-    quantity= Column(Integer, nullable=False)
+    item_quantity= Column(Integer, nullable=False)
     unit_price = Column(Numeric(10,2), nullable=False)
 
     cart = relationship("Cart", back_populates="items")
