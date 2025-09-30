@@ -185,6 +185,29 @@ def test_order(authorized_client1, test_products, session):
 
 
 
+# create a test cart
+@pytest.fixture
+def test_cart(authorized_client1,test_products):
+    cart_items = {
+        "items":[
+            {"product_id": test_products[0]['id'], "item_quantity":2},
+            {"product_id": test_products[1]['id'], "item_quantity":3}
+        ]
+    }
+
+    result=authorized_client1.post("/cart/add", json=cart_items)
+
+    assert result.status_code == 201
+
+    cart = result.json()
+
+    return cart
+
+
+    
+
+
+
 
 
 
