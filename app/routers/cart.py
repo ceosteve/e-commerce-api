@@ -1,4 +1,5 @@
 
+from pyexpat import model
 from fastapi import APIRouter, Response, status, Depends
 from datetime import datetime
 import logging 
@@ -29,7 +30,7 @@ def add_to_cart(order_items:schemas.CreateCart,
     
     if not active_cart:
         active_cart = models.Cart(
-            user_id = current_user.id,
+            user_id = current_user.id, 
             created_at = datetime.utcnow(),
             status = "active"
             )
@@ -45,7 +46,7 @@ def add_to_cart(order_items:schemas.CreateCart,
             if not product_exists:
                 raise raise_api_error("PRODUCT_NOT_FOUND", id=item.product_id)
 
-            if product_exists.stock<item.quantity:
+            if product_exists.stock<item.item_quantity:
                 raise raise_api_error("INSUFFICIENT_STOCK")
             
             
@@ -53,14 +54,14 @@ def add_to_cart(order_items:schemas.CreateCart,
                                              models.CartItem.product_id==item.product_id).first()
             
             if cart_item:
-                 cart_item.quantity = cart_item.quantity+ item.quantity
+                 cart_item.item_quantity = cart_item.item_quantity+ item.item_quantity
                  cart_item.unit_price = product_exists.price
 
             else:
                 new_cart_item = models.CartItem(
                     cart_id = active_cart.id,
                     product_id = item.product_id,
-                    quantity = item.quantity,
+                    item_quantity = item.item_quantity,
                     unit_price = product_exists.price
                     )
                 
@@ -73,6 +74,18 @@ def add_to_cart(order_items:schemas.CreateCart,
     logger.info(f"user {current_user.id} created new cart with {active_cart.id}")
     
     return active_cart
+
+
+# get cart from database
+@router.get("/{id}", status_code=status.HTTP_200_OK, response_model = schemas.CartOut)
+def get_cart(id:int, db:Session=Depends(get_db), current_user:int=Depends(dependencies.get_current_user)):
+    cart=db.query(models.Cart).filter(models.Cart.id==id).first()
+
+    if not cart:
+        raise raise_api_error("CART_NOT_FOUND")
+    if cart.user_id != current_user.id:
+        raise raise_api_error("FORBIDDEN")
+    return cart
 
 
 
@@ -108,21 +121,21 @@ def checkout (db:Session=Depends(get_db),
             if not product_exists:
                 raise raise_api_error("PRODUCT_NOT_FOUND", id=item.product_id)
 
-            if product_exists.stock<item.quantity:
+            if product_exists.stock<item.item_quantity:
                 raise raise_api_error("INSUFFICIENT_STOCK")
 
-            product_exists.stock -= item.quantity
+            product_exists.stock -= item.item_quantity
 
             new_order_item = models.OrderItem(
                 order_id=new_order.id,
                 product_id = item.product_id,
-                item_quantity = item.quantity,
+                item_quantity = item.item_quantity,
                 unit_price = product_exists.price
             ) 
 
             db.add(new_order_item)
 
-            total_price += product_exists.price * item.quantity
+            total_price += product_exists.price * item.item_quantity
 
     active_cart.status = "checked_out"
     active_cart.updated_at = datetime.utcnow()
@@ -131,7 +144,7 @@ def checkout (db:Session=Depends(get_db),
     db.commit()
     db.refresh(new_order)
     
-    logger.info(f"user {current_user.id} checked out {active_cart.ids}")
+    logger.info(f"user {current_user.id} checked out {active_cart.id}")
     
     return new_order
            
@@ -139,7 +152,7 @@ def checkout (db:Session=Depends(get_db),
 
 
 # update order items in cart
-@router.put("/update/{id}/items", status_code=status.HTTP_200_OK, response_description=schemas.CartOut)
+@router.put("/update/{id}/items", status_code=status.HTTP_200_OK, response_model=schemas.CartOut)
 def update_order_item(id:int, update_data:schemas.OrderItemUpdate, db:Session=Depends(get_db), 
                       current_user:int=Depends(dependencies.get_current_user)):
 
@@ -151,9 +164,8 @@ def update_order_item(id:int, update_data:schemas.OrderItemUpdate, db:Session=De
     
      
     if cart.status == models.CartStatus.checked_out:
+        logger.warning(f"user with {current_user.id} tried changing a checked out cart with id {cart.id}")
         raise raise_api_error("ALREADY_CHECKED_OUT")
-
-    logger.warning(f"user with {current_user.id} treid changing a checked out cart with id {cart.ids}")
 
     for item in update_data.items:
          product = db.query(models.Products).filter(models.Products.id==item.product_id).first()
@@ -161,7 +173,8 @@ def update_order_item(id:int, update_data:schemas.OrderItemUpdate, db:Session=De
              raise raise_api_error("PRODUCT_NOT_FOUND", id=item.product_id)
          
 
-         cart_item = db.query(models.CartItem).filter(models.CartItem.product_id==item.product_id).first()
+         cart_item = db.query(models.CartItem).filter(models.CartItem.cart_id==cart.id,
+                                                      models.CartItem.product_id==item.product_id).first()
 
          if not cart_item:
              raise raise_api_error("PRODUCT_NOT_FOUND", id=item.product_id)
@@ -170,8 +183,8 @@ def update_order_item(id:int, update_data:schemas.OrderItemUpdate, db:Session=De
              raise raise_api_error("INSUFFICIENT STOCK")
          
         
-         product.stock -= (item.item_quantity- cart_item.quantity)
-         cart_item.quantity = item.item_quantity
+         product.stock -= (item.item_quantity-cart_item.item_quantity)
+         cart_item.item_quantity = item.item_quantity
          cart_item.unit_price = product.price
 
 
