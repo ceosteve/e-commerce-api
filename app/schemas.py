@@ -118,11 +118,23 @@ class OrderStatusUpdate(BaseModel):
 
 class CreateCartItem(BaseModel):
     product_id: int
-    quantity: int
+    item_quantity: int
+
+    class Config:
+        from_attributes = True
 
 
 class CreateCart(BaseModel):
     items: List[CreateCartItem]
+
+class CartItemOut(BaseModel):
+    product_id: int
+    item_quantity: int
+    unit_price: float
+
+    class Config:
+        from_attributes = True
+
 
 class CartOut(BaseModel):
     id: int
@@ -130,6 +142,10 @@ class CartOut(BaseModel):
     created_at : datetime
     updated_at : datetime
     status: str
+    items: List[CartItemOut]=[]
+
+    class Config:
+        from_attributes = True
 
 
 
