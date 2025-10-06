@@ -12,9 +12,12 @@ from app.logging_config import setup_logging
 from app.logging_middleware import LoggingMiddleware
 from app.logging_context import user_id_ctx
 from fastapi.middleware.cors import CORSMiddleware
+from .security.login_protection import failed_attempts
 
 logger = setup_logging()
 
+for handler in logger.handlers:
+    handler.flush()
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -23,6 +26,7 @@ models.Base.metadata.create_all(bind=engine)
 async def lifespan(app:FastAPI):
     logger.info("Application starting up")
     yield
+    failed_attempts.clear()
     
     logger.info("Application shutting down")
 
