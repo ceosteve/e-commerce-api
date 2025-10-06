@@ -147,6 +147,10 @@ class CartOut(BaseModel):
     class Config:
         from_attributes = True
 
+class CaptchaResponse(BaseModel):
+    captcha_required:bool
+    detail:str
+
 
 
 
