@@ -1,6 +1,6 @@
-
+from typing import Union
 from datetime import datetime
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from ..authentication import oauth2
@@ -8,6 +8,10 @@ from app.database import get_db
 from app import models, schemas, utils
 from ..authentication.refresh_tokens import make_refresh_record
 import logging
+from app.security.rate_limiter import limiter, rate_limit_exceeded_handler
+from app.security.login_protection import (record_failed_attempts,is_captcha_required,reset_attempts)
+from slowapi.util import get_remote_address
+
 
 
 logger = logging.getLogger("ecommerce")
@@ -18,8 +22,15 @@ router = APIRouter(
 )
 
 
-@router.post("/login", response_model=schemas.TokenOut)
-def login(user_credentials:OAuth2PasswordRequestForm= Depends(), db:Session=Depends(get_db)):
+@router.post("/login", response_model= Union[schemas.TokenOut, schemas.CaptchaResponse])
+@ limiter.limit("5/minute")
+def login(request:Request,user_credentials:OAuth2PasswordRequestForm= Depends(), db:Session=Depends(get_db)):
+    
+    ip = get_remote_address(request)
+
+    if is_captcha_required(ip):
+        logger.warning(f"Too many attempts {ip} required to complete captcha")
+        return {"captcha_required":True, "detail":"Too many failed attempts. Complete CAPTCHA."}
     
     query=db.query(models.Users).filter(models.Users.email==user_credentials.username)
     user = query.first()
@@ -28,8 +39,11 @@ def login(user_credentials:OAuth2PasswordRequestForm= Depends(), db:Session=Depe
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="username not found")
     
     if not utils.verify_password(user_credentials.password, user.password):
+        record_failed_attempts(ip)
+        logger.warning(f"user at IP {ip} failed to log in with invalid credentials")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
        
+    reset_attempts(ip)
 
     access_token = oauth2.create_access_token({"user_id":user.id,"role":user.role})
     refresh_raw = make_refresh_record(db,user_id=user.id)
