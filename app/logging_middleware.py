@@ -1,5 +1,6 @@
 
 
+from venv import logger
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.logging_context import user_id_ctx
 from fastapi import Request
@@ -28,15 +29,14 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 user_id = pay_load.get("user_id")
                 if user_id:
                     user_id_ctx.set(user_id)
-            except JWTError:
-                pass
+            except JWTError as e:
+                logger.warning(f"JWT decoding failed: {str(e)}")
         
-        # proceed to process the request
+        """proceed to process the request, reset user id after response is given"""
 
-        response = await call_next(request)
-
-        # reset context to avoid leaking user_id across requests
-
-        user_id_ctx.set("-")
+        try:
+            response = await call_next(request)
+        finally:
+         user_id_ctx.set("-")
         return response
 

@@ -1,15 +1,18 @@
 import logging
-import contextvars
+from contextvars import ContextVar
+
 
 # context variable stores user id per request
 
-user_id_ctx = contextvars.ContextVar("user_id", default="-")
+
+
+user_id_ctx = ContextVar("user_id", default="-")
 
 class UserContextFilter(logging.Filter):
     def filter(self, record):
-        record.user_id = user_id_ctx.get()
-        return 
-
-
-
-    
+        try:
+            user_id = user_id_ctx.get()
+        except Exception as e:
+            user_id = "-"
+        setattr(record, "user_id", user_id or "-")
+        return True

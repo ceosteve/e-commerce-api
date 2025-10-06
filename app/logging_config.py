@@ -17,6 +17,11 @@ def setup_logging():
                 "format": "[%(asctime)s] [user=%(user_id)s] %(levelname)s [%(name)s:%(lineno)d] %(message)s"
             },
         },
+        "filters":{
+            "user_context":{
+                "()":UserContextFilter,
+            },
+        },
         # where log mesaages go
         # prints log info to the terminal
         "handlers":{
@@ -28,22 +33,16 @@ def setup_logging():
         
         # writes log messages into a file
             "file":{
-                "class":"logging.handlers.TimedRotatingFileHandler",
+                "class":"logging.handlers.RotatingFileHandler",
                 "formatter":"detailed",
                 "filename":"logs/app.log",
                 "encoding":"utf-8",
-                "when": "midnight", # this rotates the log file at midnight
+                "maxBytes": 1048576,
                 "backupCount": 7,    # will keep logs for 7 days
-                "filters":["user_context"]
-            },
-        },
-        "filters":{
-            "user_context":{
-                "()":UserContextFilter,
             },
         },
         "root":{
-            "level":"INFO",
+            "level":"DEBUG",
             "handlers":["console","file"],
         },
     }
