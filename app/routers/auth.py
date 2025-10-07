@@ -3,14 +3,17 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, status, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+
 from ..authentication import oauth2
 from app.database import get_db
 from app import models, schemas, utils
 from ..authentication.refresh_tokens import make_refresh_record
 import logging
-from app.security.rate_limiter import limiter, rate_limit_exceeded_handler
+from app.security.rate_limiter import limiter, setup_rate_limiter
 from app.security.login_protection import (record_failed_attempts,is_captcha_required,reset_attempts)
 from slowapi.util import get_remote_address
+
+from app.authentication import refresh_tokens
 
 
 
@@ -57,28 +60,27 @@ def login(request:Request,user_credentials:OAuth2PasswordRequestForm= Depends(),
 @router.post("/token/refresh", response_model=schemas.TokenOut)
 def refresh_token(request:schemas.RefreshRequest, db:Session=Depends(get_db)):
 
-    raw_refresh_token=request.refresh_token
-
     db_tokens = db.query(models.RefreshToken).filter(models.RefreshToken.expires_at > datetime.utcnow()).all()
     db_token = None
     
     for token in db_tokens:
-        if utils.verify_token(raw_refresh_token,token.hashed_token):
-            db_token = token
-            break
-        if not db_tokens:
+        try:
+            if utils.verify_token(request.refresh_token, token.hashed_token):
+                db_token = token
+                break
+        except:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
-    
-    #rotate refresh token
+
     user_id = db_token.user_id
+    #rotate refresh token
     db.delete(db_token)
     db.commit()
 
-    new_raw_refresh_token = utils.make_refresh_record(db,user_id=user_id, days=7)
+    new_raw_refresh_token = refresh_tokens.make_refresh_record(db,user_id=user_id, days=7)
 
     new_access_token = oauth2.create_access_token({"user_id": user_id})
 
-    logger.info("new refresh and acess tokens created")
+    logger.info("new refresh and access tokens created")
 
     return {"access_token":new_access_token, "token_type":"bearer", "refresh_token":new_raw_refresh_token}
 
