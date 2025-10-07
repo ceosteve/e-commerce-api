@@ -45,7 +45,6 @@ def client(session):
 
 
 
-
 # test_user fixture
 @pytest.fixture()
 def test_user(client):
@@ -170,7 +169,6 @@ def test_order(authorized_client1, test_products, session):
     data = result.json()
     
 
-
     for item in new_order['items']:
         new_order_item = models.OrderItem(
              order_id=data['id'],
@@ -204,7 +202,8 @@ def test_cart(authorized_client1,test_products):
     return cart
 
 
-    
+
+
 
 
 
