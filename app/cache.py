@@ -1,3 +1,4 @@
+
 import redis.asyncio as redis
 import json
 
@@ -12,15 +13,11 @@ async def get_redis_server():
     )
 
 """add store and retrieve functions to cache data in Redis"""
-
-
-
-
 # create cache data
-async def cache_set(key:str, value, expires:int=60):
+async def cache_set(key:str, value, expire:int=60):
     redis_server = await get_redis_server()
 
-    await redis_server.set(key, json.dumps(value), ex=expires)
+    await redis_server.set(key, json.dumps(value), ex=expire)
     await redis_server.close()
 
 # retrieving cached data from redis 
@@ -32,3 +29,18 @@ async def cache_get(key:str):
     return json.loads(data) if data else None
 
 
+# clear cache when database changes
+async def clear_cache(key:str):
+    redis=await get_redis_server()
+    await redis.delete()
+    await redis.close()
+
+
+# delete all keys that match a pattern
+async def cache_delete_pattern(pattern:str):
+    redis = await get_redis_server()
+    keys = await redis.keys(pattern)
+
+    if keys:
+        await redis.delete(*keys)
+    await redis.close()
