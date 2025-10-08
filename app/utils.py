@@ -1,9 +1,10 @@
 
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 from passlib.context import CryptContext
 from app.config import settings
-
+import hashlib
+from typing import Any, Dict, Optional
 from .errors import ERRORS
 
 pswd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -53,3 +54,28 @@ def raise_api_error(error_code:str, **kwargs):
             }
         }
     )
+
+
+# utility function to make cache keys automatically
+def make_cache_key_from_request(request:Request,prefix:str="cache") -> str:
+    
+    """generates a consistent cache key from Redis based on the path
+       and guery/path parameters"""
+    
+    # get the request path (eg /products)
+    path = request.url.path
+
+    # convert parameters to a sorted string for consistency
+    params = sorted(request.query_params.items())
+    if params:
+        param_string = "&".join(f"{k}={v}" for k, v in params)
+    else:
+        param_string = "no_params"
+    
+    # create a hash to shorten keys
+    key_hash = hashlib.md5(param_string.encode()).hexdigest()
+
+    # return key format
+    return f"cache:{path}:{key_hash}"
+
+
