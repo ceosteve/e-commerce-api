@@ -1,13 +1,13 @@
 
 from logging import info
 from math import prod
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Request
 
 from sqlalchemy.orm import Session
 from typing import List
 from app.cache import cache_get
 from app.database import get_db
-from app.utils import raise_api_error
+from app.utils import make_cache_key_from_request, raise_api_error
 from .. import models, schemas
 from .. import dependencies
 from datetime import datetime
@@ -78,10 +78,10 @@ def create_order(order:schemas.CreateOrder,
 
 # view orders by logged in customer
 @router.get("/customer",status_code=status.HTTP_200_OK, response_model=List[schemas.OrderOut])
-async def get_orders(db:Session=Depends(get_db), current_user:int=Depends(dependencies.get_current_user)):
+async def get_orders(request:Request, db:Session=Depends(get_db), current_user:int=Depends(dependencies.get_current_user)):
 
     # create a cache key
-    cache_key = "orders:all"
+    cache_key = make_cache_key_from_request(request)
     
     # check if cache data exists
     cache_data = await cache_get(cache_key)

@@ -1,13 +1,13 @@
 import logging
 from itertools import product
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status, Request
 from sqlalchemy.orm import Session
 
 from app import schemas, models, dependencies
 from app.database import get_db
-from app.utils import raise_api_error
-from ..cache import cache_get, cache_set
+from app.utils import make_cache_key_from_request, raise_api_error
+from ..cache import cache_get, cache_set, cache_delete_pattern
 
 
 logger = logging.getLogger("ecommerce")
@@ -20,7 +20,7 @@ router = APIRouter(
 
 # create product in the system
 @router.post("/create", status_code=status.HTTP_201_CREATED, response_model=List[schemas.ProductOut])
-def create_product(products:List[schemas.ProductCreate], db:Session=Depends(get_db), 
+async def create_product(products:List[schemas.ProductCreate], db:Session=Depends(get_db), 
                    current_user:models.Users=Depends(dependencies.require_admin)):
     
     new_products=[models.Products(**product.dict()) for product in products ]
@@ -29,6 +29,10 @@ def create_product(products:List[schemas.ProductCreate], db:Session=Depends(get_
 
     for product in new_products:
         db.refresh(product)
+    
+    # invalidate all product caches since data changed
+    await cache_delete_pattern("cache:/products")
+    print("cache cleared")
 
     logger.info(f"user with {current_user.id} added {new_products} in database")
     
@@ -37,13 +41,13 @@ def create_product(products:List[schemas.ProductCreate], db:Session=Depends(get_
 
 # get all products from database
 @router.get("/",status_code=status.HTTP_200_OK, response_model=List[schemas.ProductOut])
-async def get_products(db:Session=Depends(get_db),
+async def get_products(request:Request,db:Session=Depends(get_db),
                   skip:int= Query(0,ge=0),
                   limit:int=Query(10, ge=1),
                   search:Optional[str]=Query(None)):
     
     # generate a unique cache key
-    cache_key = f"products:{skip}:{limit}:{search or 'all'}"
+    cache_key = make_cache_key_from_request(request)
 
     # try to get cached data first
     cached = await cache_get(cache_key)
@@ -71,7 +75,7 @@ async def get_products(db:Session=Depends(get_db),
 
 # update product information
 @router.put("/update/{id}",status_code=status.HTTP_200_OK, response_model=schemas.ProductOut)
-def update_product(id:int, update_info:schemas.ProductUpdate, 
+async def update_product(id:int, update_info:schemas.ProductUpdate, 
                    db:Session=Depends(get_db), 
                    current_user:models.Users=Depends(dependencies.require_admin)):
 
@@ -79,9 +83,9 @@ def update_product(id:int, update_info:schemas.ProductUpdate,
     product=query.first()
 
     if not product:
+        logger.critical(f"user tried to update a non existing product of id {product.id}")
         raise raise_api_error("PRODUCT_NOT_FOUND", id=id)
     
-    logger.critical(f"user tried to update a non existing product of id {product.id}")
  
     updated_product=update_info.dict(exclude_unset=True)
 
@@ -89,6 +93,10 @@ def update_product(id:int, update_info:schemas.ProductUpdate,
     db.commit()
     db.refresh(product)
 
+    # invalidate caches
+    await cache_delete_pattern("cache:/products")
+    print("existing cache cleared")
+    
     logger.info(f"user {current_user.id} updated product {product.id}")
 
     return product
@@ -97,7 +105,7 @@ def update_product(id:int, update_info:schemas.ProductUpdate,
 
 # delete product from database
 @router.delete("/delete/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_product(id:int, db:Session=Depends(get_db),
+async def delete_product(id:int, db:Session=Depends(get_db),
                     current_user:models.Users=Depends(dependencies.require_admin)):
 
     product=db.query(models.Products).filter(models.Products.id==id).first()
@@ -107,6 +115,10 @@ def delete_product(id:int, db:Session=Depends(get_db),
     
     db.delete(product)
     db.commit()
+
+    # inavlidate caches
+    await cache_delete_pattern("cache:/products")
+    print("cache cleared!")
 
     logger.info(f"product {product.id} deleted from database")
 
