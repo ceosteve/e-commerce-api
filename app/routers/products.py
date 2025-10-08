@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app import schemas, models, dependencies
 from app.database import get_db
 from app.utils import raise_api_error
+from ..cache import cache_get, cache_set
 
 
 logger = logging.getLogger("ecommerce")
@@ -36,11 +37,21 @@ def create_product(products:List[schemas.ProductCreate], db:Session=Depends(get_
 
 # get all products from database
 @router.get("/",status_code=status.HTTP_200_OK, response_model=List[schemas.ProductOut])
-def get_products(db:Session=Depends(get_db),
+async def get_products(db:Session=Depends(get_db),
                   skip:int= Query(0,ge=0),
                   limit:int=Query(10, ge=1),
                   search:Optional[str]=Query(None)):
     
+    # generate a unique cache key
+    cache_key = f"products:{skip}:{limit}:{search or 'all'}"
+
+    # try to get cached data first
+    cached = await cache_get(cache_key)
+    if cached:
+        print("returning cached data")
+        return cached
+    
+    # if not cached, fetch data from database
     query=db.query(models.Products)
 
     if search:
@@ -48,6 +59,13 @@ def get_products(db:Session=Depends(get_db),
     
     products= query.offset(skip).limit(limit).all()
 
+    # convert DB objects into JSON serializable
+    products_data = [schemas.ProductOut.from_orm(p).dict() for p in products]
+
+    # cache the result to be used for next time
+    await cache_set(cache_key,products_data,expire=120)
+
+    print("cached new data")
     return products
 
 
