@@ -1,9 +1,12 @@
+from datetime import datetime
+import hashlib
+import json
 import logging
 from itertools import product
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status, Request
 from sqlalchemy.orm import Session
-
+from fastapi.responses import JSONResponse
 from app import schemas, models, dependencies
 from app.database import get_db
 from app.utils import make_cache_key_from_request, raise_api_error
@@ -52,8 +55,23 @@ async def get_products(request:Request,db:Session=Depends(get_db),
     # try to get cached data first
     cached = await cache_get(cache_key)
     if cached:
-        print("returning cached data")
-        return cached
+        # compute Etag for cached data
+        body = json.dumps(cached, sort_keys=True)
+        etag = hashlib.md5(body.encode()).hexdigest()
+        last_modified = datetime.utcnow().strftime("%a,%d %m %Y %H:%M:%S GMT")
+
+        # check if client has latest version 
+        if request.headers.get("if-none-match") == etag:
+            return Response(status_code=304)
+        
+        # else, send cached data
+        response = JSONResponse(content = cached)
+        response.headers["X-Cache"] ="HIT"
+        response.headers["Cache-Control"] = "public, max-age=60"
+        response.headers["ETag"] = etag
+        response.headers["Last-Modified"] = last_modified
+        print ("returning cached data")
+        return response
     
     # if not cached, fetch data from database
     query=db.query(models.Products)
@@ -69,8 +87,20 @@ async def get_products(request:Request,db:Session=Depends(get_db),
     # cache the result to be used for next time
     await cache_set(cache_key,products_data,expire=120)
 
-    print("cached new data")
-    return products
+    # compute the Etag + last modified again
+    body = json.dumps(products_data, sort_keys=True)
+    etag = hashlib.md5(body.encode()).hexdigest()
+    last_modified = datetime.utcnow().strftime("%a, %d %m %Y %H:%M:%S GMT")
+
+    # return data with headers
+    response = JSONResponse(content=products_data)
+    response.headers["X-Cache"] = "MISS"
+    response.headers['Cache-Control'] = "public, max-age=60"
+    response.headers["ETag"] = etag
+    response.headers["Last-Modified"] = last_modified
+
+    print("cached new data with (ETag)")
+    return response
 
 
 # update product information
