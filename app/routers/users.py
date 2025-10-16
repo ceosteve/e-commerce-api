@@ -21,9 +21,9 @@ router = APIRouter(
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
 def create_user_account(user:schemas.UserCreate, db:Session=Depends(get_db)):
 
-    user=db.query(models.Users).filter(models.Users.email==user.email).first()
+    existing_user=db.query(models.Users).filter(models.Users.email==user.email).first()
 
-    if user:
+    if existing_user:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'user with email {user.email} already exists')
 
     hashed_password = utils.hash_password(user.password)
