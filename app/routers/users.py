@@ -20,24 +20,29 @@ router = APIRouter(
 # create new user account
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
 def create_user_account(user:schemas.UserCreate, db:Session=Depends(get_db)):
+    try:
+        existing_user=db.query(models.Users).filter(models.Users.email==user.email).first()
 
-    existing_user=db.query(models.Users).filter(models.Users.email==user.email).first()
+        if existing_user:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'user with email {user.email} already exists')
 
-    if existing_user:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'user with email {user.email} already exists')
+        hashed_password = utils.hash_password(user.password)
+        user.password = hashed_password
 
-    hashed_password = utils.hash_password(user.password)
-    user.password = hashed_password
+        new_user = models.Users(**user.model_dump())
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
 
-    new_user = models.Users(**user.model_dump())
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-
-    logger.info(f"user with email {new_user.email} created account")
+        logger.info(f"user with email {new_user.email} created account")
 
 
-    return new_user
+        return new_user
+    except Exception as e:
+        db.rollback()
+        print("REGISTER ERROR", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 
 
 # retrieve profile details
