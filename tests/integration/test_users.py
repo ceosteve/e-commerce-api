@@ -36,7 +36,8 @@ def test_login(client, test_user):
 
 @pytest.mark.parametrize("email,password,status_code", [
     ("steve@gmail.com","password233",200),
-    ("steven@gmail.com","password233",404)
+    ("steven@gmail.com","password233",404),
+    ("steve@gmail.com", "wrongpassword", 429)
 ])
 def test_incorrect_login(client,test_user,email,password,status_code):
     result = client.post("/login", data={"username":email, "password":password})
@@ -44,6 +45,8 @@ def test_incorrect_login(client,test_user,email,password,status_code):
     assert result.status_code == status_code
     if status_code == 404:
         assert result.json().get('detail')== 'username not found'
+    elif status_code ==429:
+        assert result.json().get('detail') == "5 per 1 minute"
 
     
 # delete another user's id
@@ -57,6 +60,12 @@ def test_own_user_id(authorized_client1, test_user):
     result = authorized_client1.delete(f"users/delete/{test_user['id']}")
 
     assert result.status_code == 204
+
+# test duplicate email registration
+def test_register_duplicate_email(client, test_user):
+    result = client.post("/users/register", json=test_user)
+
+    assert result.status_code == 422
 
 
 
