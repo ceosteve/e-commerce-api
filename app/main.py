@@ -14,6 +14,7 @@ from app.logging_context import user_id_ctx
 from fastapi.middleware.cors import CORSMiddleware
 from .security.login_protection import failed_attempts
 
+
 logger = setup_logging()
 
 for handler in logger.handlers:
@@ -30,9 +31,16 @@ async def lifespan(app:FastAPI):
     
     logger.info("Application shutting down")
 
+
+
 app = FastAPI(lifespan=lifespan)
 
+
+
 app.add_middleware(LoggingMiddleware)
+
+
+
 
 origins = ['http://localhost:8000']
 
@@ -45,11 +53,15 @@ app.add_middleware(
     allow_headers = ["*"],
 )
 
+
+
 app.include_router(users.router)
 app.include_router(auth.router)
 app.include_router(products.router)
 app.include_router(orders.router)
 app.include_router(cart.router)
+
+
 
 @app.get("/")
 def root():
