@@ -3,7 +3,6 @@ from logging.config import dictConfig
 from app.logging_context import UserContextFilter
 
 
-
 # logging configurations in form of a dict so that its re usable
 def setup_logging():
     logging_config = {
@@ -42,7 +41,7 @@ def setup_logging():
             },
         },
         "root":{
-            "level":"DEBUG",
+            "level":"INFO",
             "handlers":["console","file"],
         },
     }
