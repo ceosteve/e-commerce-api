@@ -1,7 +1,7 @@
 import logging
 from logging.config import dictConfig
 from app.logging_context import UserContextFilter
-import logging.handlers
+
 
 
 # logging configurations in form of a dict so that its re usable
