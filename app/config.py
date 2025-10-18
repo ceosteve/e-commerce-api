@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     algorithm :str
     access_token_expiration_time: int
     refresh_token_expiration_days: int
+    postgres_user:str
+    postgres_password:str
+    postgres_db:str
 
     model_config = SettingsConfigDict(env_file=".env",env_file_encoding="utf-8")
 
