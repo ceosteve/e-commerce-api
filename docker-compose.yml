@@ -1,0 +1,45 @@
+
+services:
+    api:
+        build: .  
+        depends_on:
+          postgres:
+            condition: service_healthy
+          redis:
+            condition: service_started
+        ports:
+          - 8001:8001
+        env_file:
+            - ./.env
+        volumes:
+          - ./:/usr/src/app
+        command: "uvicorn app.main:app --host 0.0.0.0 --port 8001"
+
+    postgres:
+        image: postgres
+        ports:
+          - 5432:5432
+        env_file:
+          - .env
+        volumes:
+          - postgres-db:/var/lib/postgresql/data
+        healthcheck:
+          test: ["CMD-SHELL", "pg_isready -U postgres"]
+          interval: 10s
+          timeout: 5s
+          retries: 3
+                      
+    
+    redis:
+      image: redis:latest
+      ports:
+        - 6379:6379
+
+volumes:
+  postgres-db: {}
+
+        
+        
+
+
+      
