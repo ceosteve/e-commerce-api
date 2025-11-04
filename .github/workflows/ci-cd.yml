@@ -60,6 +60,9 @@ jobs:
             echo "Waiting for postgres..."
             sleep 3
           done
+      - name: Create test database
+        run: | 
+         psql -h localhost -U postgres -c "CREATE DATABASE ecommerce_test;"
       
       - name: Print environment variables
         run: env| grep DATABASE
