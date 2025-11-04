@@ -1,10 +1,11 @@
 import logging
 from logging.config import dictConfig
 from app.logging_context import UserContextFilter
-
+import os
 
 # logging configurations in form of a dict so that its re usable
 def setup_logging():
+    os.makedirs("logs", exist_ok=True)
     logging_config = {
         "version":1,
         "disable_existing_loggers":False,
