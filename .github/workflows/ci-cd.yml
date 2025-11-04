@@ -22,6 +22,8 @@ jobs:
       ALGORITHM: ${{secrets.ALGORITHM}}
       ACCESS_TOKEN_EXPIRATION_TIME: ${{secrets.ACCESS_TOKEN_EXPIRATION_TIME}}
       REFRESH_TOKEN_EXPIRATION_DAYS: ${{secrets.REFRESH_TOKEN_EXPIRATION_DAYS}}
+      REDIS_HOST: ${{secrets.REDIS_HOST}}
+      REDIS_PORT: ${{secrets.REDIS_PORT}}
 
     services:
       postgres:
@@ -37,6 +39,16 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      
+      redis:
+        image: redis-latest
+        ports:
+          - 6379:6379
+        options: >-
+          -- health-cmd "redis-cli ping"
+          -- health-interval 10s
+          -- health-timeout 5s
+          -- health-retries 5
 
     steps:
       - name: Checkout repository
