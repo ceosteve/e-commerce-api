@@ -87,6 +87,8 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
     needs: build-and-test
+    environment:
+      name: Testing
 
     steps:
       - name: Checkout repository
