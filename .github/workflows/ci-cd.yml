@@ -61,6 +61,8 @@ jobs:
             sleep 3
           done
       - name: Create test database
+        env:
+          PGPASSWORD: postgres254
         run: | 
          psql -h localhost -U postgres -c "CREATE DATABASE ecommerce_test;"
       
