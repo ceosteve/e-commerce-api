@@ -10,6 +10,19 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    environment:
+      name: Testing
+    env:
+      DATABASE_HOSTNAME: ${{secrets.DATABASE_HOSTNAME}}
+      DATABASE_PORT: ${{secrets.DATABASE_PORT}}
+      DATABASE_PASSWORD: ${{secrets.DATABASE_PASSWORD}}
+      DATABASE_NAME: ${{secrets.DATABASE_NAME}}_test
+      DATABASE_USERNAME: ${{secrets.DATABASE_USERNAME}}
+      SECRET_KEY: ${{secrets.SECRET_KEY}}
+      ALGORITHM: ${{secrets.ALGORITHM}}
+      ACCESS_TOKEN_EXPIRATION_TIME: ${{secrets.ACCESS_TOKEN_EXPIRATION_TIME}}
+      REFRESH_TOKEN_EXPIRATION_DAYS: ${{secrets.REFRESH_TOKEN_EXPIRATION_DAYS}}
+
     services:
       postgres:
         image: postgres:latest
@@ -19,7 +32,6 @@ jobs:
           POSTGRES_DB: ecommerce
         ports:
           - 5432:5432
-        # Fix: proper CMD-SHELL syntax and spacing
         options: >-
           --health-cmd="pg_isready -U postgres"
           --health-interval 10s
@@ -50,15 +62,8 @@ jobs:
           done
 
       - name: Run tests
-        env:
-          DATABASE_HOSTNAME: localhost
-          DATABASE_PORT: 5432
-          DATABASE_NAME: ecommerce
-          DATABASE_USERNAME: postgres
-          DATABASE_PASSWORD: postgres254
         run: |
           pytest -v -s --maxfail=1 --disable-warnings
-
 
   docker-build:
     runs-on: ubuntu-latest
