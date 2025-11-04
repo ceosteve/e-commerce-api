@@ -41,7 +41,7 @@ jobs:
           --health-retries 5
       
       redis:
-        image: redis-latest
+        image: redis:latest
         ports:
           - 6379:6379
         options: >-
