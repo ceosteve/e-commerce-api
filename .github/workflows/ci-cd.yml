@@ -1,5 +1,4 @@
-
-name: CI/CD pipeline
+name: CI Pipeline
 
 on:
   push:
@@ -10,61 +9,74 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    services:
-        postgres:
-          image: postgres
-          env:
-            POSTGRES_USER: postgres
-            POSTGRES_PASSWORD: postgres254
-            POSTGRES_DB: ecommerce
 
-          ports:
-            - 5432:5432
-          options: >-
-            --health-cmd="pg_is_ready -U postgres"
-            --health-interval = 10s
-            --health-timeout=5s
-            --health-retries=5
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres254
+          POSTGRES_DB: ecommerce
+        ports:
+          - 5432:5432
+        # Fix: proper CMD-SHELL syntax and spacing
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
-      - name: pull git repo
+      - name: Checkout repository
         uses: actions/checkout@v4
-        
-      - name: set up python
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13.7"
-            
-      - name: Update pip
-        run: python -m pip install pip --upgrade pip
+          python-version: "3.13"
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Wait for Postgres to be ready
         run: |
-            pip install -r requirements.txt
-      
+          for i in {1..10}; do
+            pg_isready -h localhost -U postgres && break
+            echo "Waiting for postgres..."
+            sleep 3
+          done
+
       - name: Run tests
+        env:
+          DATABASE_HOSTNAME: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: ecommerce
+          DATABASE_USERNAME: postgres
+          DATABASE_PASSWORD: postgres254
         run: |
-         pytest-v -s --maxfail=1 --disable-warnings
-  
+          pytest -v -s --maxfail=1 --disable-warnings
+
+
   docker-build:
     runs-on: ubuntu-latest
     needs: build-and-test
 
     steps:
-      - name: pull git repo
+      - name: Checkout repository
         uses: actions/checkout@v4
-      
-      - name: log in to Docker hub
+
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{secrets.DOCKER_HUB_USERNAME}}
-          password: ${{secrets.DOCKER_HUB_ACCESS_TOKEN}}
-      
-      - name: build and publish docker image
-        uses: docker/build-push-actions@v2
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-
-          
-
-              
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ecommerce-api:latest
