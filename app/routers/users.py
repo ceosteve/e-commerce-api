@@ -1,10 +1,13 @@
+from typing import List
 import logging
 from venv import logger
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.oauth2 import get_current_user
+
 from ..authentication import oauth2 
 from ..database import get_db
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 from app import dependencies, schemas, models, utils,dependencies
 from ..utils import raise_api_error
 
@@ -58,6 +61,20 @@ def get_profile (id:int, db:Session=Depends(get_db), current_user:int=Depends(de
         raise raise_api_error("INVALID_CREDENTIALS")
 
     return user
+
+
+
+
+#retrieve all users as admin in the system
+@router.get("/", response_model=List[schemas.UserResponse])
+def get_all_users_as_admin(db:Session=Depends(get_db), current_user: int=Depends(get_current_user)):
+    users = db.query(models.Users).all()
+
+    if current_user.role != models.UserRole.admin:
+        raise raise_api_error("FORBIDDEN")
+    return users
+
+
 
 
 # edit user profile

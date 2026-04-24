@@ -46,7 +46,7 @@ async def create_product(products:List[schemas.ProductCreate], db:Session=Depend
 @router.get("/",status_code=status.HTTP_200_OK, response_model=List[schemas.ProductOut])
 async def get_products(request:Request,db:Session=Depends(get_db),
                   skip:int= Query(0,ge=0),
-                  limit:int=Query(10, ge=1),
+                  limit:int=Query(1000, ge=1),
                   search:Optional[str]=Query(None)):
     
     # generate a unique cache key
